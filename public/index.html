@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Diagnostic Running</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F1F5F9;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:0}
+#app{width:100%;max-width:430px;min-height:100vh;background:#fff;display:flex;flex-direction:column;position:relative}
+
+/* WELCOME */
+.hero{background:linear-gradient(160deg,#1D4ED8,#3B82F6);padding:36px 20px 28px;text-align:center;flex-shrink:0}
+.hero-icon{font-size:42px;margin-bottom:12px}
+.hero h1{color:#fff;font-size:22px;font-weight:700;margin-bottom:8px}
+.hero p{color:#BFDBFE;font-size:13px;line-height:1.6}
+.hero-stats{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,.13);border-radius:10px;padding:6px 13px;text-align:center}
+.stat b{display:block;color:#fff;font-size:14px;font-weight:700}
+.stat small{display:block;color:#BFDBFE;font-size:10px}
+.zones{padding:20px 16px 0;overflow-y:auto;max-height:280px}
+.zones-label{font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.zone-row{display:flex;align-items:flex-start;gap:12px;padding:10px 13px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;margin-bottom:7px}
+.zone-icon{font-size:20px;flex-shrink:0}
+.zone-title{font-size:13px;font-weight:600;color:#1E293B}
+.zone-sub{font-size:11px;color:#64748B;margin-top:2px;line-height:1.4}
+.welcome-cta{padding:20px 16px 28px}
+.btn-start{width:100%;padding:15px;border-radius:14px;background:#1D4ED8;border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.btn-start:hover{background:#1E40AF}
+.disclaimer{font-size:11px;color:#94A3B8;text-align:center;margin-top:10px;line-height:1.5}
+
+/* CHAT */
+#screen-chat{display:none;flex-direction:column;height:100vh}
+.chat-header{background:#1D4ED8;padding:12px 16px 10px;flex-shrink:0}
+.chat-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chat-title{color:#fff;font-weight:600;font-size:15px}
+.btn-restart{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer}
+.phases{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.phases::-webkit-scrollbar{display:none}
+.phase-pill{font-size:10px;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);border:none}
+.phase-pill.active{background:#fff;color:#1D4ED8;font-weight:600}
+.phase-pill.done{background:#BBF7D0;color:#065F46}
+.progress-bar{height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;background:#93C5FD;border-radius:2px;transition:width .4s ease;width:0}
+
+#messages{flex:1;overflow-y:auto;padding:14px 13px 8px;display:flex;flex-direction:column;gap:10px}
+.bubble{max-width:88%}
+.bubble.bot{align-self:flex-start}
+.bubble.user{align-self:flex-end}
+.bubble-inner{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.6}
+.bubble.bot .bubble-inner{background:#F1F5F9;color:#1E293B;border-bottom-left-radius:4px}
+.bubble.user .bubble-inner{background:#1D4ED8;color:#fff;border-bottom-right-radius:4px}
+.bubble.error .bubble-inner{background:#FFF1F2;color:#9F1239;border-bottom-left-radius:4px}
+.bubble.test .bubble-inner{background:#FEF3C7;color:#78350F;border:1px solid #FDE68A;border-bottom-left-radius:4px}
+.typing-dots{display:flex;gap:5px;padding:11px 15px;background:#F1F5F9;border-radius:18px;border-bottom-left-radius:4px;align-self:flex-start;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1.2s infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,60%,100%{transform:scale(1);opacity:.5}30%{transform:scale(1.35);opacity:1}}
+
+#choices-area{flex-shrink:0;border-top:1px solid #F1F5F9;overflow-y:auto;max-height:340px}
+.choices-inner{padding:8px 13px 12px;display:flex;flex-direction:column;gap:7px}
+.choice-btn{padding:12px 15px;border-radius:12px;border:1.5px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;font-size:13px;font-weight:500;text-align:left;cursor:pointer;line-height:1.4;display:flex;align-items:center;gap:10px;transition:all .12s}
+.choice-btn:hover{background:#DBEAFE}
+.choice-btn.selected{background:#1D4ED8;color:#fff;border-color:#1D4ED8}
+.checkbox{width:18px;height:18px;border-radius:4px;border:2px solid #93C5FD;background:transparent;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:11px;transition:all .12s}
+.choice-btn.selected .checkbox{border-color:#fff;background:rgba(255,255,255,.25)}
+.multi-hint{font-size:11px;color:#64748B;font-style:italic;padding:0 2px 2px}
+.btn-confirm{padding:12px;border-radius:12px;border:none;background:#15803D;color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-top:2px;transition:background .12s}
+.btn-confirm:disabled{background:#E2E8F0;color:#94A3B8;cursor:not-allowed}
+
+/* MULTI-QUESTION */
+.mq-block{display:flex;flex-direction:column;gap:12px}
+.mq-item{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+.mq-text{font-size:13px;font-weight:600;color:#1E293B;margin-bottom:8px}
+.mq-hint{font-size:11px;color:#64748B;font-style:italic;margin-bottom:6px}
+.mq-choices{display:flex;flex-direction:column;gap:6px}
+.btn-mq-confirm{padding:13px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:background .12s}
+
+/* DIAGNOSIS */
+#screen-diagnosis{display:none;flex-direction:column;height:100vh}
+.diag-header{background:#15803D;padding:14px 16px 12px;flex-shrink:0}
+.diag-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.diag-title{color:#fff;font-weight:600;font-size:15px}
+.diag-summary{color:#BBF7D0;font-size:12px;line-height:1.6;font-weight:500}
+#diag-content{flex:1;overflow-y:auto;padding:14px 13px 28px;display:flex;flex-direction:column;gap:12px}
+
+/* CARDS */
+.patho-card{border-radius:14px;overflow:hidden;border:1px solid #E2E8F0}
+.patho-card.primary{border:1.5px solid #BFDBFE}
+.card-head{padding:12px 14px 0}
+.card-rank{font-size:10px;font-weight:600;margin-bottom:4px}
+.card-name-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.card-name{font-size:15px;font-weight:700;color:#0F172A;line-height:1.3}
+.tissue-badge{font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;font-weight:500}
+.conf-row{display:flex;align-items:center;gap:8px;padding-bottom:10px}
+.conf-track{flex:1;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;border-radius:2px}
+.conf-pct{font-size:11px;font-weight:600;flex-shrink:0}
+.card-desc{font-size:13px;color:#475569;line-height:1.65;padding:0 14px 12px}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px;border-top:1px solid #F1F5F9}
+.cell{border-radius:8px;padding:8px 10px}
+.cell-label{font-size:10px;color:#94A3B8;margin-bottom:2px}
+.cell-val{font-size:11px;color:#334155;line-height:1.4}
+.cell.full{grid-column:1/-1}
+.cell.urgent{background:#FFF1F2}
+.cell.urgent .cell-label{color:#BE123C}
+.cell.urgent .cell-val{color:#9F1239}
+
+/* ACCORDION */
+.acc{border-top:1px solid #F1F5F9}
+.acc-btn{width:100%;padding:10px 14px;background:none;border:none;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;cursor:pointer;text-align:left}
+.acc-chev{font-size:14px;display:inline-block;transition:transform .2s}
+.acc-body{display:none;padding:0 14px 14px;flex-direction:column;gap:8px}
+.acc-body.open{display:flex}
+
+/* PLAN B */
+.planb-for{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:10px 12px}
+.planb-against{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:10px 12px}
+.planb-label{font-size:11px;font-weight:600;margin-bottom:5px}
+
+/* PHASES */
+.phase-item{border-radius:10px;padding:10px 12px}
+.phase-num-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.phase-num{width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.phase-text{font-size:11px;line-height:1.6}
+
+/* EXERCISES */
+.ex-item{background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:11px 12px;transition:opacity .2s}
+.ex-item.done{opacity:.55;background:#F1F5F9;border-color:#CBD5E1}
+.ex-item.done .ex-name{text-decoration:line-through;color:#64748B}
+.ex-item.hidden{display:none}
+.ex-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.ex-name-wrap{display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0}
+.ex-check{width:22px;height:22px;border-radius:6px;border:2px solid #86EFAC;background:#fff;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#15803D;transition:all .15s;margin-top:1px}
+.ex-check.checked{background:#15803D;color:#fff;border-color:#15803D}
+.ex-name{font-size:13px;font-weight:700;color:#14532D;line-height:1.3}
+.ex-tags{display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex-shrink:0}
+.ex-phase-tag{font-size:10px;padding:2px 8px;border-radius:20px;background:#BBF7D0;color:#065F46;white-space:nowrap}
+.ex-cat-tag{font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-weight:600}
+.ex-goal{font-size:12px;color:#166534;font-style:italic;margin-bottom:6px}
+.ex-how{font-size:12px;color:#1A4731;line-height:1.65;background:#DCFCE7;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chip{font-size:11px;padding:3px 9px;border-radius:20px;background:#DCFCE7;color:#166534;border:1px solid #86EFAC}
+.chip.warn{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.ex-prog{font-size:11px;color:#16A34A;line-height:1.4}
+
+/* CATEGORY FILTER */
+.cat-filters{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 10px}
+.cat-filter{font-size:11px;padding:5px 10px;border-radius:20px;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;cursor:pointer;font-weight:500}
+.cat-filter.active{background:#15803D;color:#fff;border-color:#15803D}
+
+/* PROGRESS TRACKER */
+.ex-progress-bar{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.ex-progress-text{font-size:12px;color:#166534;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
+.ex-progress-track{height:6px;background:#DCFCE7;border-radius:3px;overflow:hidden}
+.ex-progress-fill{height:100%;background:#15803D;border-radius:3px;transition:width .4s ease;width:0}
+
+/* RETURN TO RUN */
+.rtr-box{border:1.5px solid #93C5FD;background:#EFF6FF;border-radius:12px;padding:12px 14px}
+.rtr-title{font-size:14px;font-weight:700;color:#1D4ED8;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.rtr-prereq{background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#78350F;line-height:1.5}
+.rtr-prereq-label{font-weight:700;font-size:10px;margin-bottom:3px;color:#92400E;text-transform:uppercase;letter-spacing:.04em}
+.rtr-week{background:#fff;border:1px solid #BFDBFE;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
+.rtr-week-num{background:#1D4ED8;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0;min-width:38px;text-align:center;height:fit-content}
+.rtr-week-body{flex:1;min-width:0}
+.rtr-week-session{font-size:12px;color:#1E3A8A;font-weight:600;line-height:1.5}
+.rtr-week-meta{font-size:11px;color:#475569;margin-top:3px;line-height:1.5}
+.rtr-week-notes{font-size:11px;color:#94A3B8;font-style:italic;margin-top:2px}
+.rtr-rules{margin-top:10px;border-top:1px dashed #BFDBFE;padding-top:10px}
+.rtr-rules-label{font-size:10px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.rtr-rule{font-size:11px;color:#1E3A8A;padding:2px 0;display:flex;gap:6px;line-height:1.5}
+
+.red-flags-box{background:#FFF1F2;border:1.5px solid #FDA4AF;border-radius:12px;padding:12px 14px}
+.rf-title{font-size:13px;font-weight:700;color:#BE123C;margin-bottom:6px}
+.rf-item{font-size:12px;color:#9F1239;padding:3px 0;display:flex;gap:8px;line-height:1.5}
+.reco-box{background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:12px 14px}
+.reco-title{font-size:13px;font-weight:600;color:#15803D;margin-bottom:8px}
+.reco-item{font-size:12px;color:#14532D;padding:3px 0;display:flex;gap:8px;line-height:1.5}
+.disclaimer-box{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px;font-size:12px;color:#64748B;line-height:1.5}
+.btn-new{width:100%;padding:14px;border-radius:12px;background:#F1F5F9;border:1px solid #E2E8F0;color:#475569;font-size:14px;font-weight:500;cursor:pointer}
+
+/* LOADING */
+#screen-loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:40px}
+.loading-icon{font-size:44px;margin-bottom:16px}
+.loading-title{font-size:16px;font-weight:600;color:#1E293B;margin-bottom:8px}
+.loading-sub{font-size:13px;color:#64748B;line-height:1.6}
+.loading-dots{display:flex;gap:8px;justify-content:center;margin-top:24px}
+.loading-dot{width:10px;height:10px;border-radius:50%;background:#3B82F6;animation:pulse 1.2s infinite}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- WELCOME -->
+  <div id="screen-welcome">
+    <div class="hero">
+      <div class="hero-icon">🏃</div>
+      <h1>Diagnostic Running</h1>
+      <p>Diagnostic adaptatif · 160+ pathologies · Programme de reprise personnalisé · Exercices à domicile</p>
+      <div class="hero-stats">
+        <div class="stat"><b>160+</b><small>pathologies</small></div>
+        <div class="stat"><b>Exercices</b><small>par phase</small></div>
+        <div class="stat"><b>Walk-run</b><small>reprise course</small></div>
+        <div class="stat"><b>Suivi</b><small>de progression</small></div>
+      </div>
+    </div>
+    <div class="zones">
+      <div class="zones-label">Zones couvertes</div>
+      <div class="zone-row"><span class="zone-icon">🦶</span><div><div class="zone-title">Pied / Cheville</div><div class="zone-sub">Achille · Péritendinite · Ténosynovites releveurs · Nerf sural · Haglund · Morton · Fasciose · Jones</div></div></div>
+      <div class="zone-row"><span class="zone-icon">🦵</span><div><div class="zone-title">Jambe</div><div class="zone-sub">Périostite · Loges · Mollet · Nerf sural · SPE · Fibulaire superficiel · TVP URGENCE</div></div></div>
+      <div class="zone-row"><span class="zone-icon">🦵</span><div><div class="zone-title">Genou</div><div class="zone-sub">BIT/TFL · SFP · Ménisques · Rotulien · Patte d'oie · Hoffa · Noble test · Ober test</div></div></div>
+      <div class="zone-row"><span class="zone-icon">🍑</span><div><div class="zone-title">Hanche / Cuisse</div><div class="zone-sub">Piriforme · Trochantérienne · FAI · Col fémoral URGENCE · Méralgie · Nerf obturateur</div></div></div>
+      <div class="zone-row"><span class="zone-icon">🫁</span><div><div class="zone-title">Dos / Rachis</div><div class="zone-sub">Sciatique · Cruralgie · Hernie · Canal lombaire · Queue de cheval URGENCE</div></div></div>
+      <div class="zone-row"><span class="zone-icon">🔴</span><div><div class="zone-title">Systémique</div><div class="zone-sub">Rhabdomyolyse · Hyponatrémie · Anémie · Overtraining · RED-S</div></div></div>
+    </div>
+    <div class="welcome-cta">
+      <button class="btn-start" onclick="startDiagnosis()">🩺 Commencer le diagnostic</button>
+      <div class="disclaimer">⚕ Outil informatif uniquement · Ne remplace pas un diagnostic médical professionnel</div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="screen-chat">
+    <div class="chat-header">
+      <div class="chat-header-top">
+        <div class="chat-title">🩺 Diagnostic adaptatif</div>
+        <button class="btn-restart" onclick="restart()">↺</button>
+      </div>
+      <div class="phases">
+        <span class="phase-pill active" id="ph1">Localisation</span>
+        <span class="phase-pill" id="ph2">Douleur</span>
+        <span class="phase-pill" id="ph3">Contexte</span>
+        <span class="phase-pill" id="ph4">Tests</span>
+        <span class="phase-pill" id="ph5">Diagnostic</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <div id="messages"></div>
+    <div id="choices-area"></div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="screen-loading">
+    <div class="loading-icon">🔬</div>
+    <div class="loading-title">Analyse en cours…</div>
+    <div class="loading-sub">Croisement avec 160+ pathologies pour établir le diagnostic le plus précis.</div>
+    <div class="loading-dots">
+      <div class="loading-dot" style="animation-delay:0ms"></div>
+      <div class="loading-dot" style="animation-delay:150ms"></div>
+      <div class="loading-dot" style="animation-delay:300ms"></div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSIS -->
+  <div id="screen-diagnosis">
+    <div class="diag-header">
+      <div class="diag-header-top">
+        <div class="diag-title">✅ Résultat du diagnostic</div>
+        <button class="btn-restart" onclick="restart()">↺ Nouveau</button>
+      </div>
+      <div class="diag-summary" id="diag-summary"></div>
+    </div>
+    <div id="diag-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let history = [];
+let loading = false;
+let currentPhase = 1;
+
+const TISSUE = {
+  tendon:    {label:"Tendineux",    bg:"#DBEAFE",color:"#1E40AF",icon:"〰️"},
+  bursa:     {label:"Bursite",      bg:"#E0F2FE",color:"#0369A1",icon:"🫧"},
+  nerve:     {label:"Nerveux",      bg:"#FEF3C7",color:"#92400E",icon:"⚡"},
+  ligament:  {label:"Ligamentaire", bg:"#D1FAE5",color:"#065F46",icon:"🔗"},
+  muscle:    {label:"Musculaire",   bg:"#F3F4F6",color:"#374151",icon:"💪"},
+  bone:      {label:"Osseux",       bg:"#FEE2E2",color:"#991B1B",icon:"🦴"},
+  cartilage: {label:"Cartilagineux",bg:"#EDE9FE",color:"#5B21B6",icon:"🔵"},
+  vascular:  {label:"Vasculaire",   bg:"#FEF9C3",color:"#713F12",icon:"🩸"},
+  systemic:  {label:"Systémique",   bg:"#FEE2E2",color:"#991B1B",icon:"🚨"},
+  other:     {label:"Autre",        bg:"#F3F4F6",color:"#374151",icon:"•"},
+};
+const PC = [{},{bg:"#EFF6FF",border:"#BFDBFE",nb:"#BFDBFE",nc:"#1D4ED8",tc:"#1E3A8A"},{bg:"#F0FDF4",border:"#BBF7D0",nb:"#BBF7D0",nc:"#15803D",tc:"#14532D"},{bg:"#FFFBEB",border:"#FDE68A",nb:"#FDE68A",nc:"#B45309",tc:"#78350F"},{bg:"#FFF1F2",border:"#FECDD3",nb:"#FECDD3",nc:"#BE123C",tc:"#881337"}];
+
+const CATEGORIES = {
+  mobility:       {label:"Mobilité",       icon:"🔄", bg:"#E0F2FE", color:"#0369A1"},
+  strengthening:  {label:"Renforcement",   icon:"💪", bg:"#DBEAFE", color:"#1E40AF"},
+  core:           {label:"Gainage",        icon:"🎯", bg:"#FCE7F3", color:"#9D174D"},
+  proprioception: {label:"Proprioception", icon:"⚖️", bg:"#EDE9FE", color:"#5B21B6"},
+  stretching:     {label:"Étirement",      icon:"🧘", bg:"#FEF3C7", color:"#92400E"},
+  running:        {label:"Course",         icon:"🏃", bg:"#DCFCE7", color:"#14532D"},
+  cardio:         {label:"Cardio",         icon:"🚴", bg:"#FFE4E6", color:"#9F1239"},
+  other:          {label:"Autre",          icon:"•",  bg:"#F1F5F9", color:"#475569"},
+};
+
+// ─── EXERCISE TRACKING (localStorage) ─────────────────────────────────────────
+function exKey(pathoName, exName) {
+  return 'ex_done:' + (pathoName||'') + ':' + (exName||'');
+}
+function isExDone(pathoName, exName) {
+  try { return localStorage.getItem(exKey(pathoName, exName)) === '1'; } catch(e) { return false; }
+}
+function setExDone(pathoName, exName, done) {
+  try {
+    if (done) localStorage.setItem(exKey(pathoName, exName), '1');
+    else localStorage.removeItem(exKey(pathoName, exName));
+  } catch(e) {}
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────────────────
+function show(id){
+  ['screen-welcome','screen-chat','screen-loading','screen-diagnosis'].forEach(s=>{
+    const el = document.getElementById(s);
+    el.style.display = (s===id) ? 'flex' : 'none';
+    el.style.flexDirection = 'column';
+  });
+}
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function callAPI(msgs) {
+  const r = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({messages: msgs})
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.error || 'HTTP ' + r.status);
+  }
+  const d = await r.json();
+  let text = d.content?.find(b=>b.type==='text')?.text || '';
+  let stop_reason = d.stop_reason;
+
+  // Handle truncated JSON
+  let attempts = 0;
+  while (stop_reason==='max_tokens' && text.trim().startsWith('{') && !text.trim().endsWith('}') && attempts < 3) {
+    const cont = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({messages:[...msgs,{role:'assistant',content:text},{role:'user',content:'Continue le JSON exactement là où tu t\'es arrêté.'}]})
+    });
+    const cd = await cont.json();
+    text += cd.content?.find(b=>b.type==='text')?.text || '';
+    stop_reason = cd.stop_reason;
+    attempts++;
+  }
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
+
+// ─── CHAT HELPERS ─────────────────────────────────────────────────────────────
+function addBubble(html, type) {
+  const msgs = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.className = 'bubble ' + type;
+  d.innerHTML = '<div class="bubble-inner">' + html + '</div>';
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.id = 'typing';
+  d.innerHTML = '<div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function hideTyping() { const e=document.getElementById('typing'); if(e) e.remove(); }
+
+function setProgress(pct, phase) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  if (phase && phase > currentPhase) {
+    document.getElementById('ph' + currentPhase).className = 'phase-pill done';
+    document.getElementById('ph' + currentPhase).textContent = '✓ ' + document.getElementById('ph' + currentPhase).textContent.replace('✓ ','');
+    currentPhase = phase;
+    document.getElementById('ph' + phase).className = 'phase-pill active';
+  }
+}
+
+// ─── RENDER CHOICES ──────────────────────────────────────────────────────────
+function renderChoices(choices, multi, onConfirm) {
+  const area = document.getElementById('choices-area');
+  area.innerHTML = '';
+  const inner = document.createElement('div');
+  inner.className = 'choices-inner';
+
+  if (multi) {
+    const hint = document.createElement('div');
+    hint.className = 'multi-hint';
+    hint.textContent = 'Plusieurs réponses possibles';
+    inner.appendChild(hint);
+  }
+
+  let selected = [];
+
+  choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    if (multi) {
+      btn.innerHTML = '<span class="checkbox"></span>' + esc(c);
+      btn.onclick = () => {
+        const idx = selected.indexOf(c);
+        if (idx >= 0) { selected.splice(idx,1); btn.classList.remove('selected'); }
+        else { selected.push(c); btn.classList.add('selected'); }
+        confirmBtn.disabled = selected.length === 0;
+      };
+    } else {
+      btn.textContent = c;
+      btn.onclick = () => { area.innerHTML = ''; addBubble(esc(c),'user'); sendMessage(c); };
+    }
+    inner.appendChild(btn);
+  });
+
+  if (multi) {
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-confirm';
+    confirmBtn.textContent = 'Confirmer →';
+    confirmBtn.disabled = true;
+    confirmBtn.onclick = () => {
+      if (selected.length === 0) return;
+      const val = selected.join(' + ');
+      area.innerHTML = '';
+      addBubble(esc(val), 'user');
+      sendMessage(val);
+    };
+    inner.appendChild(confirmBtn);
+  }
+
+  area.appendChild(inner);
+}
+
+// ─── RENDER MULTI-QUESTION ────────────────────────────────────────────────────
+function renderMultiQuestion(block, onComplete) {
+  const area = document.getElementById('choices-area');
+  area.innerHTML = '';
+  const inner = document.createElement('div');
+  inner.className = 'choices-inner';
+  const answers = {};
+
+  block.questions.forEach(q => {
+    const item = document.createElement('div');
+    item.className = 'mq-item';
+    item.innerHTML = '<div class="mq-text">' + esc(q.text) + '</div>';
+    if (q.multi_select) {
+      item.innerHTML += '<div class="mq-hint">Plusieurs réponses possibles</div>';
+    }
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'mq-choices';
+    let selSet = [];
+
+    (q.choices||[]).forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      if (q.multi_select) {
+        btn.innerHTML = '<span class="checkbox"></span>' + esc(c);
+        btn.onclick = () => {
+          const idx = selSet.indexOf(c);
+          if (idx>=0){selSet.splice(idx,1);btn.classList.remove('selected');}
+          else{selSet.push(c);btn.classList.add('selected');}
+          answers[q.id] = selSet.length ? selSet.join(' + ') : undefined;
+          updateConfirm();
+        };
+      } else {
+        btn.textContent = c;
+        btn.onclick = () => {
+          choicesDiv.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          answers[q.id] = c;
+          updateConfirm();
+        };
+      }
+      choicesDiv.appendChild(btn);
+    });
+    item.appendChild(choicesDiv);
+    inner.appendChild(item);
+  });
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn-mq-confirm';
+  confirmBtn.textContent = 'Envoyer mes réponses →';
+  confirmBtn.disabled = true;
+  confirmBtn.style.background = '#E2E8F0';
+  confirmBtn.style.color = '#94A3B8';
+
+  function updateConfirm() {
+    const allDone = block.questions.every(q => answers[q.id]);
+    confirmBtn.disabled = !allDone;
+    confirmBtn.style.background = allDone ? '#1D4ED8' : '#E2E8F0';
+    confirmBtn.style.color = allDone ? '#fff' : '#94A3B8';
+    confirmBtn.style.cursor = allDone ? 'pointer' : 'not-allowed';
+  }
+
+  confirmBtn.onclick = () => {
+    if (confirmBtn.disabled) return;
+    const parts = block.questions.map(q => q.text + ' → ' + answers[q.id]);
+    const val = parts.join(' | ');
+    area.innerHTML = '';
+    addBubble(esc(val), 'user');
+    sendMessage(val);
+  };
+
+  inner.appendChild(confirmBtn);
+  area.appendChild(inner);
+}
+
+// ─── SEND / RECEIVE ──────────────────────────────────────────────────────────
+async function sendMessage(userText, isFirst=false) {
+  if (loading) return;
+  loading = true;
+  document.getElementById('choices-area').innerHTML = '';
+  if (!isFirst) history.push({role:'user', content:userText});
+  else history = [{role:'user', content:userText}];
+
+  showTyping();
+  try {
+    const parsed = await callAPI(history);
+    history.push({role:'assistant', content:JSON.stringify(parsed)});
+    hideTyping();
+
+    const prog = parsed.progress || Math.min(history.filter(h=>h.role==='user').length * 15, 85);
+    setProgress(prog, parsed.phase);
+
+    if (parsed.type === 'diagnosis') {
+      setProgress(100, 5);
+      renderDiagnosis(parsed);
+      show('screen-diagnosis');
+    } else if (parsed.type === 'multi_question') {
+      addBubble(esc(parsed.intro || 'Quelques questions :'), 'bot');
+      renderMultiQuestion(parsed);
+    } else if (parsed.type === 'test') {
+      const testHtml = '<strong>🧪 ' + esc(parsed.name) + '</strong>' +
+        (parsed.rationale ? '<br><em style="font-size:12px;opacity:.8">Pourquoi ce test : ' + esc(parsed.rationale) + '</em>' : '') +
+        '<br><br>' + esc(parsed.instruction);
+      addBubble(testHtml, 'test');
+      renderChoices(parsed.choices || ['Positif','Négatif','Partiel','Impossible'], false);
+    } else {
+      addBubble(esc(parsed.text || ''), 'bot');
+      if (parsed.choices && parsed.choices.length) {
+        renderChoices(parsed.choices, !!parsed.multi_select);
+      }
+    }
+  } catch(e) {
+    hideTyping();
+    addBubble('⚠️ ' + esc(e.message || 'Erreur réseau') + '. Réessayez.', 'error');
+  }
+  loading = false;
+}
+
+function startDiagnosis() {
+  history = [];
+  currentPhase = 1;
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('choices-area').innerHTML = '';
+  document.getElementById('progress-fill').style.width = '0';
+  ['ph1','ph2','ph3','ph4','ph5'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    el.className = i===0 ? 'phase-pill active' : 'phase-pill';
+  });
+  show('screen-chat');
+  sendMessage("Bonjour, je suis un coureur blessé. Aide-moi à identifier ma blessure.", true);
+}
+
+function restart() {
+  show('screen-welcome');
+}
+
+// ─── DIAGNOSIS RENDER ─────────────────────────────────────────────────────────
+function renderDiagnosis(data) {
+  document.getElementById('diag-summary').textContent = data.summary || '';
+  const c = document.getElementById('diag-content');
+  c.innerHTML = '';
+
+  if (data.red_flags && data.red_flags.length) {
+    const box = el('div','red-flags-box');
+    box.innerHTML = '<div class="rf-title">⚠️ Signes d\'alarme — consultez en urgence</div>';
+    data.red_flags.forEach(r => {
+      const d = el('div','rf-item');
+      d.innerHTML = '<span>⚠</span>' + esc(r);
+      box.appendChild(d);
+    });
+    c.appendChild(box);
+  }
+
+  (data.pathologies||[]).forEach((p, rank) => c.appendChild(buildCard(p, rank)));
+
+  if (data.recommendations && data.recommendations.length) {
+    const box = el('div','reco-box');
+    box.innerHTML = '<div class="reco-title">✅ Recommandations générales</div>';
+    data.recommendations.forEach(r => {
+      const d = el('div','reco-item');
+      d.innerHTML = '<span>→</span>' + esc(r);
+      box.appendChild(d);
+    });
+    c.appendChild(box);
+  }
+
+  const disc = el('div','disclaimer-box');
+  disc.textContent = '⚕ Ce diagnostic est orientatif. Seul un examen clinique par un professionnel de santé permet un diagnostic de certitude.';
+  c.appendChild(disc);
+
+  const btn = el('button','btn-new');
+  btn.textContent = '↺ Nouveau diagnostic';
+  btn.onclick = restart;
+  c.appendChild(btn);
+}
+
+function buildCard(p, rank) {
+  const t = TISSUE[p.tissue_type] || TISSUE.other;
+  const isPri = rank === 0;
+  const cc = p.likelihood==='high'?'#1D4ED8':p.likelihood==='medium'?'#D97706':'#94A3B8';
+  const rl = rank===0?'🎯 Diagnostic principal':rank===1?'🔸 Diagnostic secondaire':'🔹 À considérer';
+  const bg = isPri ? '#EFF6FF' : '#fff';
+
+  const card = el('div','patho-card' + (isPri?' primary':''));
+
+  // Head
+  const head = el('div','card-head');
+  head.style.background = bg;
+  head.innerHTML = `<div class="card-rank" style="color:${isPri?'#3B82F6':'#64748B'}">${rl}</div>
+    <div class="card-name-row">
+      <div class="card-name">${esc(p.name)}</div>
+      <span class="tissue-badge" style="background:${t.bg};color:${t.color}">${t.icon} ${t.label}</span>
+    </div>
+    <div class="conf-row">
+      <div class="conf-track"><div class="conf-fill" style="width:${p.confidence}%;background:${cc}"></div></div>
+      <span class="conf-pct" style="color:${cc}">${p.confidence}%</span>
+    </div>`;
+  card.appendChild(head);
+
+  // Description
+  const desc = el('div','card-desc');
+  desc.style.background = bg;
+  desc.textContent = p.description || '';
+  card.appendChild(desc);
+
+  // Grid cells
+  const grid = el('div','card-grid');
+  if (p.location) grid.appendChild(mkCell('📍 Localisation', p.location));
+  if (p.mechanism) grid.appendChild(mkCell('⚙️ Mécanisme', p.mechanism));
+  if (p.differentials) grid.appendChild(mkCell('🔀 Différentiels', p.differentials, true));
+  if (p.tests) grid.appendChild(mkCell('🔬 Tests en cabinet', p.tests, true));
+  if (p.specialist) grid.appendChild(mkCell('👨‍⚕️ Spécialiste', p.specialist, true));
+  if (p.immediate_action) grid.appendChild(mkCell('🚨 Action immédiate', p.immediate_action, true, true));
+  card.appendChild(grid);
+
+  // Plan B
+  if (p.plan_b) {
+    const acc = mkAcc('🔄 Plan B — ' + (p.plan_b.name||''), '#7C3AED', false);
+    const forBox = el('div','planb-for');
+    forBox.innerHTML = '<div class="planb-label" style="color:#5B21B6">✅ Arguments en faveur</div>' + esc(p.plan_b.arguments_for||'');
+    const agBox = el('div','planb-against');
+    agBox.innerHTML = '<div class="planb-label" style="color:#C2410C">❌ Pourquoi le diagnostic principal est plus probable</div>' + esc(p.plan_b.arguments_against||'');
+    acc.body.appendChild(forBox);
+    acc.body.appendChild(agBox);
+    card.appendChild(acc.wrapper);
+  }
+
+  // Phases
+  if (p.phases && p.phases.length) {
+    const acc = mkAcc('📅 Plan de reprise — ' + p.phases.length + ' phases', '#1D4ED8', isPri);
+    p.phases.forEach(ph => {
+      const s = PC[ph.number] || PC[1];
+      const item = el('div','phase-item');
+      item.style.background = s.bg;
+      item.style.border = '1px solid ' + s.border;
+      item.innerHTML = `<div class="phase-num-row">
+        <div class="phase-num" style="background:${s.nb};color:${s.nc}">${ph.number}</div>
+        <div><strong style="font-size:12px;color:${s.tc}">${esc(ph.title)}</strong><div style="font-size:11px;color:${s.nc}">⏱ ${esc(ph.duration)}</div></div>
+      </div>
+      <div class="phase-text" style="color:${s.tc}">
+        <div><strong>Objectif : </strong>${esc(ph.objectives)}</div>
+        <div><strong>Autorisé : </strong>${esc(ph.allowed)}</div>
+        <div><strong>À éviter : </strong>${esc(ph.forbidden)}</div>
+      </div>`;
+      acc.body.appendChild(item);
+    });
+    card.appendChild(acc.wrapper);
+  }
+
+  // Exercises (open by default for primary diagnosis)
+  if (p.exercises && p.exercises.length) {
+    const acc = mkAcc('💪 Programme de reprise — ' + p.exercises.length + ' exercices', '#15803D', isPri);
+
+    // Progress tracker
+    const progBox = el('div','ex-progress-bar');
+    const progText = el('div','ex-progress-text');
+    const progTrack = el('div','ex-progress-track');
+    const progFill = el('div','ex-progress-fill');
+    progTrack.appendChild(progFill);
+    progBox.appendChild(progText);
+    progBox.appendChild(progTrack);
+    acc.body.appendChild(progBox);
+
+    function refreshProgress() {
+      const done = p.exercises.filter(ex => isExDone(p.name, ex.name)).length;
+      const total = p.exercises.length;
+      const pct = total ? Math.round(done/total*100) : 0;
+      progText.innerHTML = `<span>✓ Suivi de votre programme</span><span>${done} / ${total}</span>`;
+      progFill.style.width = pct + '%';
+    }
+
+    // Category filters
+    const availableCats = [...new Set(p.exercises.map(ex => ex.category || 'other'))];
+    let activeCat = 'all';
+    const filtersWrap = el('div','cat-filters');
+    const allFilter = el('button','cat-filter active');
+    allFilter.textContent = 'Tous';
+    filtersWrap.appendChild(allFilter);
+    const catButtons = [allFilter];
+    availableCats.forEach(cat => {
+      const c = CATEGORIES[cat] || CATEGORIES.other;
+      const b = el('button','cat-filter');
+      b.innerHTML = c.icon + ' ' + c.label;
+      b.dataset.cat = cat;
+      filtersWrap.appendChild(b);
+      catButtons.push(b);
+    });
+    catButtons.forEach(b => {
+      b.onclick = () => {
+        catButtons.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        activeCat = b.dataset.cat || 'all';
+        applyFilter();
+      };
+    });
+    acc.body.appendChild(filtersWrap);
+
+    const exItems = [];
+    p.exercises.forEach(ex => {
+      const cat = ex.category || 'other';
+      const c = CATEGORIES[cat] || CATEGORIES.other;
+      const item = el('div','ex-item');
+      item.dataset.cat = cat;
+      if (isExDone(p.name, ex.name)) item.classList.add('done');
+
+      const top = el('div','ex-top');
+      const nameWrap = el('div','ex-name-wrap');
+      const checkBtn = el('button','ex-check' + (isExDone(p.name, ex.name) ? ' checked' : ''));
+      checkBtn.innerHTML = isExDone(p.name, ex.name) ? '✓' : '';
+      checkBtn.setAttribute('aria-label','Marquer comme fait');
+      checkBtn.onclick = (e) => {
+        e.stopPropagation();
+        const now = !isExDone(p.name, ex.name);
+        setExDone(p.name, ex.name, now);
+        item.classList.toggle('done', now);
+        checkBtn.classList.toggle('checked', now);
+        checkBtn.innerHTML = now ? '✓' : '';
+        refreshProgress();
+      };
+      const nameDiv = el('div','ex-name');
+      nameDiv.textContent = ex.name || '';
+      nameWrap.appendChild(checkBtn);
+      nameWrap.appendChild(nameDiv);
+      const tagsDiv = el('div','ex-tags');
+      if (ex.phase) {
+        const phT = el('span','ex-phase-tag');
+        phT.textContent = ex.phase;
+        tagsDiv.appendChild(phT);
+      }
+      const catT = el('span','ex-cat-tag');
+      catT.style.background = c.bg;
+      catT.style.color = c.color;
+      catT.textContent = c.icon + ' ' + c.label;
+      tagsDiv.appendChild(catT);
+      top.appendChild(nameWrap);
+      top.appendChild(tagsDiv);
+      item.appendChild(top);
+
+      const body = document.createElement('div');
+      body.innerHTML = `${ex.goal?`<div class="ex-goal">🎯 ${esc(ex.goal)}</div>`:''}
+        ${ex.how?`<div class="ex-how">${esc(ex.how)}</div>`:''}
+        <div class="chips">
+          ${ex.sets?`<span class="chip">${esc(ex.sets)}</span>`:''}
+          ${ex.reps?`<span class="chip">${esc(ex.reps)}</span>`:''}
+          ${ex.frequency?`<span class="chip">${esc(ex.frequency)}</span>`:''}
+          ${ex.caution?`<span class="chip warn">⚠ ${esc(ex.caution)}</span>`:''}
+        </div>
+        ${ex.progression?`<div class="ex-prog"><strong>↗ Progression : </strong>${esc(ex.progression)}</div>`:''}`;
+      item.appendChild(body);
+
+      acc.body.appendChild(item);
+      exItems.push(item);
+    });
+
+    function applyFilter() {
+      exItems.forEach(it => {
+        const show = activeCat === 'all' || it.dataset.cat === activeCat;
+        it.classList.toggle('hidden', !show);
+      });
+    }
+
+    refreshProgress();
+    card.appendChild(acc.wrapper);
+  }
+
+  // Return to run (walk-run program)
+  if (p.return_to_run) {
+    const acc = mkAcc('🏃 Reprise progressive de la course', '#1D4ED8', isPri);
+    const box = el('div','rtr-box');
+    if (p.return_to_run.prerequisites) {
+      const pr = el('div','rtr-prereq');
+      pr.innerHTML = `<div class="rtr-prereq-label">⚠ Prérequis avant de commencer</div>${esc(p.return_to_run.prerequisites)}`;
+      box.appendChild(pr);
+    }
+    (p.return_to_run.program||[]).forEach(w => {
+      const wk = el('div','rtr-week');
+      wk.innerHTML = `<div class="rtr-week-num">${esc(w.week||'')}</div>
+        <div class="rtr-week-body">
+          <div class="rtr-week-session">${esc(w.session||'')}</div>
+          ${w.frequency?`<div class="rtr-week-meta">📅 ${esc(w.frequency)}</div>`:''}
+          ${w.notes?`<div class="rtr-week-notes">${esc(w.notes)}</div>`:''}
+        </div>`;
+      box.appendChild(wk);
+    });
+    if (p.return_to_run.rules && p.return_to_run.rules.length) {
+      const rules = el('div','rtr-rules');
+      rules.innerHTML = '<div class="rtr-rules-label">Règles d\'or</div>';
+      p.return_to_run.rules.forEach(r => {
+        const d = el('div','rtr-rule');
+        d.innerHTML = '<span>•</span>' + esc(r);
+        rules.appendChild(d);
+      });
+      box.appendChild(rules);
+    }
+    acc.body.appendChild(box);
+    card.appendChild(acc.wrapper);
+  }
+
+  return card;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function el(tag, cls) { const e=document.createElement(tag); if(cls)e.className=cls; return e; }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function mkCell(label, val, full, urgent) {
+  const d = el('div','cell' + (full?' full':'') + (urgent?' urgent':''));
+  if (!urgent) d.style.background = '#F8FAFC';
+  d.innerHTML = `<div class="cell-label">${label}</div><div class="cell-val">${esc(val)}</div>`;
+  return d;
+}
+function mkAcc(title, color, defaultOpen) {
+  const wrapper = el('div','acc');
+  const btn = el('button','acc-btn');
+  btn.style.color = color;
+  btn.innerHTML = `<span>${esc(title)}</span><span class="acc-chev">⌄</span>`;
+  const body = el('div','acc-body' + (defaultOpen?' open':''));
+  btn.onclick = () => {
+    const open = body.classList.contains('open');
+    body.className = 'acc-body' + (open?'':' open');
+    btn.querySelector('.acc-chev').style.transform = open ? '' : 'rotate(180deg)';
+  };
+  if (defaultOpen) btn.querySelector('.acc-chev').style.transform = 'rotate(180deg)';
+  wrapper.appendChild(btn);
+  wrapper.appendChild(body);
+  return {wrapper, body};
+}
+
+// Init
+show('screen-welcome');
+</script>
+</body>
+</html>
