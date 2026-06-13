@@ -7,19 +7,31 @@ Application web mobile de diagnostic des blessures de course à pied. L'utilisat
 ```
 diagnostic-running/
 ├── api/
-│   └── chat.js          ← Fonction serverless Vercel — proxy vers Anthropic API
+│   ├── chat.js          ← Fonction serverless Vercel — proxy vers Anthropic API
+│   ├── checkout.js      ← Crée une session Stripe Checkout (paywall 1€)
+│   └── verify.js        ← Vérifie le paiement au retour de Stripe
 ├── public/
 │   └── index.html       ← Application complète (HTML/CSS/JS vanilla, mobile-first)
 ├── vercel.json          ← Routing Vercel
-├── package.json         ← Dépendances (uniquement @anthropic-ai/sdk)
+├── package.json         ← Dépendances (@anthropic-ai/sdk + stripe)
 └── CLAUDE.md            ← Ce fichier
 ```
 
 ## Déploiement
 - **Hébergeur** : Vercel (compte existant)
 - **Dépôt** : GitHub (compte existant)
-- **Variable d'environnement** : `ANTHROPIC_API_KEY` à configurer dans Vercel → Settings → Environment Variables
-- **Modèle utilisé** : `claude-sonnet-4-5` (dans api/chat.js)
+- **Modèle utilisé** : `claude-sonnet-4-6` par défaut (configurable via `CLAUDE_MODEL`), température 0.3 pour un raisonnement clinique stable. Pour une précision maximale : `CLAUDE_MODEL=claude-opus-4-8`.
+
+### Variables d'environnement (Vercel → Settings → Environment Variables)
+| Variable | Rôle | Obligatoire |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Clé API Anthropic (diagnostic IA) | ✅ Oui |
+| `CLAUDE_MODEL` | Surcharge du modèle (déf. `claude-sonnet-4-6`) | Non |
+| `STRIPE_SECRET_KEY` | Clé secrète Stripe (paywall 1€). **Si absente → mode démo** : le programme se débloque sans paiement (pour tester l'UX) | Non |
+| `PREMIUM_PRICE_CENTS` | Prix en centimes (déf. `100` = 1€) | Non |
+| `PREMIUM_CURRENCY` | Devise (déf. `eur`) | Non |
+
+> **Activer les vrais paiements** : créer un compte Stripe, copier la clé secrète (`sk_live_…` ou `sk_test_…`) dans `STRIPE_SECRET_KEY`. Aucune autre config nécessaire (le prix est créé à la volée). Tant que la clé n'est pas posée, l'app fonctionne en mode démo.
 
 ## Comment ça fonctionne
 1. `public/index.html` : interface chat mobile. Envoie les messages à `/api/chat`
@@ -99,6 +111,17 @@ diagnostic-running/
 - ✅ "Autre / aucune de ces réponses" dans tous les choix
 - ✅ Prompt épidémiologique (BIT/TFL 35%, SFP 25%...) avec priors bayésiens
 - ✅ 160+ pathologies couvertes dont toutes les neuropathies périphériques
+- ✅ **Modèle plus capable + température 0.3** et **bloc de calibration de la confiance** (anti-fermeture prématurée, confiance honnête, cohérence multi-axes, sécurité red flags) pour des diagnostics plus justes
+- ✅ **Monétisation freemium (paywall Stripe 1€)** : le diagnostic + différentiel + red flags restent GRATUITS ; le **programme de rééducation complet** (exercices détaillés, plan par phases, reprise walk-run) se débloque pour 1€ (paiement unique, accès à vie sur l'appareil)
+- ✅ **Bannière d'offre + teasers verrouillés** (aperçu flouté, nombre d'exercices/phases/paliers) pour maximiser la conversion
+- ✅ **Persistance du diagnostic** pendant la redirection Stripe + vérification du paiement au retour
+- ✅ **Export PDF / impression** du programme (bonus premium)
+- ✅ **Mode démo** automatique si Stripe non configuré
+
+## Modèle économique
+- **Gratuit** : interrogatoire adaptatif, diagnostic principal, diagnostics différentiels argumentés (plan B), localisation, mécanisme, tests en cabinet, spécialiste à consulter, red flags, recommandations. → crée la confiance et la valeur perçue.
+- **Premium 1€ (one-shot)** : programme de rééducation complet = exercices guidés (tempo/séries/reps/progression), plan de reprise par phases, programme walk-run de retour à la course, suivi de progression, export PDF.
+- **Pistes d'évolution commerciale** : prix de lancement barré (ex. 4,99€ → 1€), pack multi-diagnostics, abonnement « suivi illimité + rappels », partenariats kinés/podologues (géoloc), version EN.
 
 ## Prompt clinique — points clés
 Le SYSTEM_PROMPT dans api/chat.js contient :

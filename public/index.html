@@ -186,6 +186,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .loading-sub{font-size:13px;color:#64748B;line-height:1.6}
 .loading-dots{display:flex;gap:8px;justify-content:center;margin-top:24px}
 .loading-dot{width:10px;height:10px;border-radius:50%;background:#3B82F6;animation:pulse 1.2s infinite}
+
+/* PREMIUM / PAYWALL */
+.premium-banner{background:linear-gradient(135deg,#15803D,#0D9488);border-radius:14px;padding:16px 16px 14px;color:#fff;box-shadow:0 6px 18px rgba(13,148,136,.25)}
+.premium-banner h3{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.premium-banner p{font-size:12px;line-height:1.6;color:#D1FAE5;margin-bottom:12px}
+.premium-features{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.premium-feature{font-size:12px;color:#ECFDF5;display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.premium-price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.premium-price{font-size:30px;font-weight:800;color:#fff;line-height:1}
+.premium-price-sub{font-size:12px;color:#A7F3D0}
+.premium-price-old{font-size:13px;color:#A7F3D0;text-decoration:line-through;opacity:.8}
+.btn-unlock{width:100%;padding:14px;border-radius:12px;border:none;background:#fff;color:#15803D;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s,box-shadow .15s}
+.btn-unlock:hover{box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.btn-unlock:active{transform:scale(.985)}
+.btn-unlock:disabled{opacity:.65;cursor:wait}
+.premium-trust{font-size:10.5px;color:#A7F3D0;text-align:center;margin-top:10px;line-height:1.5}
+
+/* LOCKED SECTION TEASER (inside card) */
+.lock-block{border-top:1px solid #F1F5F9;padding:14px;background:#F8FAFC}
+.lock-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#15803D;margin-bottom:8px}
+.lock-teaser{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.lock-pill{font-size:11px;padding:4px 10px;border-radius:20px;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;font-weight:600}
+.lock-preview{position:relative;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.lock-preview-inner{filter:blur(4px);opacity:.55;pointer-events:none;user-select:none;font-size:12px;color:#475569;line-height:1.7;padding:10px 12px;background:#F0FDF4;border:1px dashed #BBF7D0;border-radius:10px}
+.lock-cta{width:100%;padding:12px;border-radius:10px;border:none;background:#15803D;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.lock-cta:hover{background:#166534}
+.premium-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#FEF3C7;color:#92400E;display:inline-flex;align-items:center;gap:4px}
+
+/* TOAST */
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:#0F172A;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:999;transition:transform .35s ease;max-width:90%;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:#15803D}#toast.err{background:#BE123C}
+
+/* PDF / PRINT BUTTON */
+.btn-pdf{width:100%;padding:13px;border-radius:12px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px}
+.btn-pdf:hover{background:#DBEAFE}
+
+@media print{
+  body{background:#fff}
+  #app{max-width:100%;box-shadow:none}
+  .diag-header,.btn-new,.btn-pdf,.premium-banner,.lock-block,.acc-btn .acc-chev,.btn-restart{display:none!important}
+  .acc-body{display:flex!important}
+  #screen-diagnosis{height:auto;display:block!important}
+  #diag-content{padding:0}
+  .patho-card{break-inside:avoid;page-break-inside:avoid;border:1px solid #ccc}
+}
 </style>
 </head>
 <body>
@@ -196,7 +242,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="hero">
       <div class="hero-icon">🏃</div>
       <h1>Diagnostic Running</h1>
-      <p>Diagnostic adaptatif · 160+ pathologies · Programme de reprise personnalisé · Exercices à domicile</p>
+      <p>Diagnostic adaptatif gratuit · 160+ pathologies · Programme de rééducation personnalisé à domicile</p>
       <div class="hero-stats">
         <div class="stat"><b>160+</b><small>pathologies</small></div>
         <div class="stat"><b>Exercices</b><small>par phase</small></div>
@@ -264,6 +310,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
 </div>
+<div id="toast"></div>
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -308,6 +355,111 @@ function setExDone(pathoName, exName, done) {
     if (done) localStorage.setItem(exKey(pathoName, exName), '1');
     else localStorage.removeItem(exKey(pathoName, exName));
   } catch(e) {}
+}
+
+// ─── PREMIUM / PAYWALL ────────────────────────────────────────────────────────
+const PREMIUM_KEY = 'premium_unlocked';
+const LAST_DIAG_KEY = 'last_diagnosis';
+let lastDiagnosisData = null;
+
+function isPremiumUnlocked() {
+  try { return localStorage.getItem(PREMIUM_KEY) === '1'; } catch(e) { return false; }
+}
+function setPremiumUnlocked(v) {
+  try { v ? localStorage.setItem(PREMIUM_KEY, '1') : localStorage.removeItem(PREMIUM_KEY); } catch(e) {}
+}
+function saveLastDiagnosis(data) {
+  lastDiagnosisData = data;
+  try { localStorage.setItem(LAST_DIAG_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function loadLastDiagnosis() {
+  if (lastDiagnosisData) return lastDiagnosisData;
+  try { return JSON.parse(localStorage.getItem(LAST_DIAG_KEY) || 'null'); } catch(e) { return null; }
+}
+
+function toast(msg, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (kind ? ' ' + kind : '');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.className = ''; }, 3800);
+}
+
+// Lance le paiement Stripe (ou débloque en mode démo si Stripe non configuré)
+async function unlockPremium(btn) {
+  if (isPremiumUnlocked()) { rerenderDiagnosis(); return; }
+  if (btn) { btn.disabled = true; btn.dataset._txt = btn.innerHTML; btn.innerHTML = '⏳ Redirection vers le paiement…'; }
+  try {
+    // On sauvegarde le diagnostic avant la redirection (l'état mémoire est perdu au retour)
+    if (lastDiagnosisData) saveLastDiagnosis(lastDiagnosisData);
+    const r = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ origin: window.location.origin })
+    });
+    const d = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(d.error || 'Erreur paiement');
+
+    if (d.demo) {
+      // Stripe non configuré : déblocage immédiat (mode démonstration)
+      setPremiumUnlocked(true);
+      toast('🔓 Programme débloqué (mode démo)', 'ok');
+      rerenderDiagnosis();
+      return;
+    }
+    if (d.url) { window.location.href = d.url; return; }
+    throw new Error('Réponse de paiement invalide');
+  } catch(e) {
+    toast('⚠️ ' + (e.message || 'Paiement indisponible'), 'err');
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset._txt || '🔓 Débloquer'; }
+  }
+}
+
+function rerenderDiagnosis() {
+  const data = loadLastDiagnosis();
+  if (!data) return;
+  renderDiagnosis(data);
+  show('screen-diagnosis');
+}
+
+// Au retour de Stripe : vérifier le paiement
+async function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const payment = params.get('payment');
+  if (!payment) return false;
+
+  // Nettoie l'URL quoi qu'il arrive
+  const cleanUrl = window.location.origin + window.location.pathname;
+
+  if (payment === 'cancel') {
+    window.history.replaceState({}, '', cleanUrl);
+    const data = loadLastDiagnosis();
+    if (data) { rerenderDiagnosis(); toast('Paiement annulé — votre diagnostic reste disponible', null); return true; }
+    return false;
+  }
+
+  if (payment === 'success') {
+    const sid = params.get('session_id');
+    show('screen-loading');
+    try {
+      const r = await fetch('/api/verify?session_id=' + encodeURIComponent(sid || ''));
+      const d = await r.json().catch(()=>({}));
+      if (d.paid) {
+        setPremiumUnlocked(true);
+        toast('🔓 Paiement confirmé — programme débloqué, merci !', 'ok');
+      } else {
+        toast('⚠️ Paiement non confirmé. Réessayez.', 'err');
+      }
+    } catch(e) {
+      toast('⚠️ Vérification du paiement impossible', 'err');
+    }
+    window.history.replaceState({}, '', cleanUrl);
+    const data = loadLastDiagnosis();
+    if (data) { rerenderDiagnosis(); return true; }
+    show('screen-welcome');
+    return true;
+  }
+  return false;
 }
 
 // ─── SCREENS ─────────────────────────────────────────────────────────────────
@@ -525,6 +677,7 @@ async function sendMessage(userText, isFirst=false) {
 
     if (parsed.type === 'diagnosis') {
       setProgress(100, 5);
+      saveLastDiagnosis(parsed);
       renderDiagnosis(parsed);
       show('screen-diagnosis');
     } else if (parsed.type === 'multi_question') {
@@ -584,6 +737,14 @@ function renderDiagnosis(data) {
     c.appendChild(box);
   }
 
+  // Bannière premium (offre de déblocage) si le programme n'est pas encore débloqué
+  // et qu'au moins une pathologie comporte un programme de rééducation.
+  const hasProgram = (data.pathologies||[]).some(p =>
+    (p.exercises && p.exercises.length) || (p.phases && p.phases.length) || p.return_to_run);
+  if (hasProgram && !isPremiumUnlocked()) {
+    c.appendChild(buildPremiumBanner(data));
+  }
+
   (data.pathologies||[]).forEach((p, rank) => c.appendChild(buildCard(p, rank)));
 
   if (data.recommendations && data.recommendations.length) {
@@ -601,10 +762,51 @@ function renderDiagnosis(data) {
   disc.textContent = '⚕ Ce diagnostic est orientatif. Seul un examen clinique par un professionnel de santé permet un diagnostic de certitude.';
   c.appendChild(disc);
 
+  // Bouton export PDF — réservé aux utilisateurs ayant débloqué le programme
+  if (isPremiumUnlocked() && hasProgram) {
+    const pdf = el('button','btn-pdf');
+    pdf.innerHTML = '📄 Télécharger / imprimer mon programme (PDF)';
+    pdf.onclick = () => window.print();
+    c.appendChild(pdf);
+  }
+
   const btn = el('button','btn-new');
   btn.textContent = '↺ Nouveau diagnostic';
   btn.onclick = restart;
   c.appendChild(btn);
+}
+
+// ─── PREMIUM BANNER ───────────────────────────────────────────────────────────
+function buildPremiumBanner(data) {
+  // Agrège ce que contient le programme pour donner envie (sans dévoiler le détail)
+  let exCount = 0, phaseCount = 0, rtrCount = 0;
+  (data.pathologies||[]).forEach(p => {
+    exCount += (p.exercises||[]).length;
+    phaseCount = Math.max(phaseCount, (p.phases||[]).length);
+    if (p.return_to_run && p.return_to_run.program) rtrCount = Math.max(rtrCount, p.return_to_run.program.length);
+  });
+  const box = el('div','premium-banner');
+  box.innerHTML = `
+    <h3>🔓 Débloquez votre programme de rééducation</h3>
+    <p>Votre diagnostic est gratuit. Accédez maintenant au plan complet pour guérir et reprendre la course en toute sécurité.</p>
+    <div class="premium-features">
+      <div class="premium-feature"><span>💪</span><span><b>${exCount || '5+'} exercices guidés</b> — position, tempo, séries, répétitions et progression semaine après semaine</span></div>
+      <div class="premium-feature"><span>📅</span><span><b>Plan de reprise en ${phaseCount || 3} phases</b> avec objectifs, gestes autorisés et interdits</span></div>
+      <div class="premium-feature"><span>🏃</span><span><b>Programme walk-run</b> de retour à la course (${rtrCount || 6} paliers progressifs)</span></div>
+      <div class="premium-feature"><span>📄</span><span><b>Export PDF</b> et suivi de progression coché</span></div>
+    </div>
+    <div class="premium-price-row">
+      <span class="premium-price">1&nbsp;€</span>
+      <span class="premium-price-sub">paiement unique · accès à vie sur cet appareil</span>
+    </div>`;
+  const btn = el('button','btn-unlock');
+  btn.innerHTML = '🔓 Débloquer mon programme · 1€';
+  btn.onclick = () => unlockPremium(btn);
+  box.appendChild(btn);
+  const trust = el('div','premium-trust');
+  trust.textContent = '🔒 Paiement sécurisé par Stripe · Sans abonnement · Conçu à partir de protocoles de kinésithérapie';
+  box.appendChild(trust);
+  return box;
 }
 
 function buildCard(p, rank) {
@@ -613,6 +815,7 @@ function buildCard(p, rank) {
   const cc = p.likelihood==='high'?'#1D4ED8':p.likelihood==='medium'?'#D97706':'#94A3B8';
   const rl = rank===0?'🎯 Diagnostic principal':rank===1?'🔸 Diagnostic secondaire':'🔹 À considérer';
   const bg = isPri ? '#EFF6FF' : '#fff';
+  const unlocked = isPremiumUnlocked();
 
   const card = el('div','patho-card' + (isPri?' primary':''));
 
@@ -658,8 +861,8 @@ function buildCard(p, rank) {
     card.appendChild(acc.wrapper);
   }
 
-  // Phases
-  if (p.phases && p.phases.length) {
+  // Phases (premium)
+  if (unlocked && p.phases && p.phases.length) {
     const acc = mkAcc('📅 Plan de reprise — ' + p.phases.length + ' phases', '#1D4ED8', isPri);
     p.phases.forEach(ph => {
       const s = PC[ph.number] || PC[1];
@@ -680,8 +883,8 @@ function buildCard(p, rank) {
     card.appendChild(acc.wrapper);
   }
 
-  // Exercises (open by default for primary diagnosis)
-  if (p.exercises && p.exercises.length) {
+  // Exercises (premium — open by default for primary diagnosis)
+  if (unlocked && p.exercises && p.exercises.length) {
     const acc = mkAcc('💪 Programme de reprise — ' + p.exercises.length + ' exercices', '#15803D', isPri);
 
     // Progress tracker
@@ -796,8 +999,8 @@ function buildCard(p, rank) {
     card.appendChild(acc.wrapper);
   }
 
-  // Return to run (walk-run program)
-  if (p.return_to_run) {
+  // Return to run (premium — walk-run program)
+  if (unlocked && p.return_to_run) {
     const acc = mkAcc('🏃 Reprise progressive de la course', '#1D4ED8', isPri);
     const box = el('div','rtr-box');
     if (p.return_to_run.prerequisites) {
@@ -829,7 +1032,43 @@ function buildCard(p, rank) {
     card.appendChild(acc.wrapper);
   }
 
+  // Bloc verrouillé : si non débloqué et que la pathologie a un programme, on teasse le contenu premium
+  const hasPremium = (p.phases && p.phases.length) || (p.exercises && p.exercises.length) || p.return_to_run;
+  if (!unlocked && hasPremium) {
+    card.appendChild(buildLockBlock(p));
+  }
+
   return card;
+}
+
+// ─── LOCKED PREMIUM TEASER (par carte) ────────────────────────────────────────
+function buildLockBlock(p) {
+  const block = el('div','lock-block');
+  const pills = [];
+  if (p.exercises && p.exercises.length) pills.push(`💪 ${p.exercises.length} exercices`);
+  if (p.phases && p.phases.length) pills.push(`📅 ${p.phases.length} phases`);
+  if (p.return_to_run && p.return_to_run.program) pills.push(`🏃 ${p.return_to_run.program.length} paliers de reprise`);
+
+  block.innerHTML = `<div class="lock-head">🔒 Programme de rééducation <span class="premium-badge">PREMIUM</span></div>`;
+  if (pills.length) {
+    const teaser = el('div','lock-teaser');
+    teaser.innerHTML = pills.map(t => `<span class="lock-pill">${esc(t)}</span>`).join('');
+    block.appendChild(teaser);
+  }
+
+  // Aperçu flouté du premier exercice pour donner un avant-goût concret
+  const firstEx = (p.exercises||[])[0];
+  if (firstEx) {
+    const prev = el('div','lock-preview');
+    prev.innerHTML = `<div class="lock-preview-inner"><b>${esc(firstEx.name||'Exercice')}</b><br>${esc(firstEx.how||firstEx.goal||'Position, tempo, séries et répétitions détaillés…')}</div>`;
+    block.appendChild(prev);
+  }
+
+  const cta = el('button','lock-cta');
+  cta.innerHTML = '🔓 Débloquer le programme complet · 1€';
+  cta.onclick = () => unlockPremium(cta);
+  block.appendChild(cta);
+  return block;
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -859,7 +1098,10 @@ function mkAcc(title, color, defaultOpen) {
 }
 
 // Init
-show('screen-welcome');
+(async function init(){
+  const handled = await handlePaymentReturn();
+  if (!handled) show('screen-welcome');
+})();
 </script>
 </body>
 </html>

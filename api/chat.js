@@ -1,6 +1,11 @@
 const Anthropic = require("@anthropic-ai/sdk");
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// Modèle configurable via variable d'environnement.
+// Pour une précision diagnostique maximale, utiliser "claude-opus-4-8" (coût supérieur).
+// Bon compromis précision / coût par défaut : "claude-sonnet-4-6".
+const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
+
 const SYSTEM_PROMPT = `Tu es un médecin du sport clinicien expert en pathologies de la course à pied. Tu mènes un interrogatoire clinique ADAPTATIF et BAYÉSIEN : tu pars des pathologies les plus fréquentes et tu affines selon les réponses.
 
 ━━━ ÉPIDÉMIOLOGIE — PATHOLOGIES LES PLUS FRÉQUENTES (priors bayésiens) ━━━
@@ -334,6 +339,19 @@ Dans le diagnostic final, le champ "description" doit EXPLICITEMENT mentionner :
 - Pourquoi AU MOINS UNE alternative a été écartée (lien vers plan_b)
 Si confidence < 70% : préciser dans "description" que le diagnostic est probabiliste, recommander confirmation par examen clinique/imagerie.
 
+━━━ CALIBRATION DE LA CONFIANCE — ANTI-ERREUR DIAGNOSTIQUE ━━━
+La justesse du diagnostic prime sur la rapidité. Respecte ces règles de calibration :
+1. NE JAMAIS conclure prématurément (premature closure). Si tes 2 hypothèses principales sont à moins de 15 points de probabilité l'une de l'autre, tu DOIS poser une question OU un test discriminant supplémentaire AVANT de conclure (dans la limite de 7 échanges).
+2. CONFIANCE HONNÊTE ET CALIBRÉE :
+   • 85-95% : réservé aux cas où un signe quasi-pathognomonique ET un test confirmateur concordent (ex : douleur au km précis + Noble positif pour le BIT).
+   • 70-84% : tableau clinique typique cohérent sur plusieurs axes, sans confirmation par test.
+   • 50-69% : orientation probable mais alternatives non écartées → le DIRE explicitement et recommander un avis professionnel/imagerie.
+   • < 50% : ne pas présenter comme diagnostic principal ferme ; présenter 2-3 hypothèses équiprobables.
+   Ne JAMAIS gonfler la confiance pour rassurer. Une confiance surestimée est une faute clinique.
+3. COHÉRENCE OBLIGATOIRE : la pathologie principale doit être cohérente avec TOUS les éléments majeurs (âge, sexe, charge, terrain, rythme de douleur, paresthésies, tests). Si UN élément majeur contredit l'hypothèse, l'expliquer dans "description" ou rétrograder l'hypothèse.
+4. SÉCURITÉ AVANT TOUT : au moindre red flag, l'orientation médicale urgente PRIME sur le diagnostic mécanique. Mentionner dans red_flags ET immediate_action.
+5. Toujours fournir un plan_b réellement argumenté (pas un diagnostic fantôme) : le 2e diagnostic le plus plausible compte tenu du bilan réel.
+
 ━━━ BIBLIOTHÈQUE D'EXERCICES DE REPRISE — RÉFÉRENCE OBLIGATOIRE ━━━
 
 OBJECTIF : pour chaque pathologie diagnostiquée, fournir un PROGRAMME COMPLET de reprise avec 5 à 8 exercices couvrant l'ensemble des phases. Le patient doit pouvoir AUTONOMEMENT exécuter sa rééducation à domicile.
@@ -482,8 +500,9 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "messages array required" });
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: MODEL,
       max_tokens: 12000,
+      temperature: 0.3,
       system: SYSTEM_PROMPT,
       messages,
     });
